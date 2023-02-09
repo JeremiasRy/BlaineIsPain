@@ -1,6 +1,7 @@
-﻿using BlaineIsPain;
+﻿using static BlaineIsPain.ScreenBuffer;
+using Types;
 
-string track = "    /---------------------\\               /-\\ /-\\  \n   //---------------------\\\\              | | | |  \n  //  /-------------------\\\\\\             | / | /  \n  ||  |/------------------\\\\\\\\            |/  |/   \n  ||  ||                   \\\\\\\\           ||  ||   \n  \\\\  ||                   | \\\\\\          ||  ||   \n   \\\\-//                   | || \\---------/\\--/|   \n/-\\ \\-/                    \\-/|                |   \n|  \\--------------------------/                |   \n\\----------------------------------------------/   \n";
+string track = "    /------S--------------\\               /-\\ /-\\  \n   //---------------------\\\\              | | | |  \n  //  /-------------------\\\\\\             | / | /  \n  ||  |/------------------\\\\\\\\            |/  |/   \n  ||  ||                   \\\\\\\\           ||  ||   \n  \\\\  ||                   | \\\\\\          ||  ||   \n   \\\\-//                   | || \\---------/\\--/|   \n/-\\ \\-/                    \\-/|                |   \n|  \\--------------------------/                |   \n\\----------------------------------------------/   \n";
 string track2 = "                                /------------\\             \n/-------------\\                /             |             \n|             |               /              S             \n|             |              /               |             \n|        /----+--------------+------\\        |\n\\       /     |              |      |        |             \n \\      |     \\              |      |        |             \n |      |      \\-------------+------+--------+---\\         \n |      |                    |      |        |   |         \n \\------+--------------------+------/        /   |         \n        |                    |              /    |         \n        \\------S-------------+-------------/     |         \n                             |                   |         \n/-------------\\              |                   |         \n|             |              |             /-----+----\\    \n|             |              |             |     |     \\   \n\\-------------+--------------+-----S-------+-----/      \\  \n              |              |             |             \\ \n              |              |             |             | \n              |              \\-------------+-------------/ \n              |                            |               \n              \\----------------------------/               ";
 static int TrainCrash(string track, string aTrain, int aTrainPos, string bTrain, int bTrainPos, int limit)
 {
@@ -8,27 +9,56 @@ static int TrainCrash(string track, string aTrain, int aTrainPos, string bTrain,
     var maxPos = mappedTrack.Count - 1;
     var trainTrack = new TrainTrack(mappedTrack, new Train(aTrain, aTrainPos, maxPos), new Train(bTrain, bTrainPos, maxPos));
     int rounds = 0;
+    foreach (var train in trainTrack.TrainsOnTrack)
+    {
+        if (trainTrack.Track[train.Positions[0]].Piece == 'S')
+        {
+            train.WaitTimer = 1;
+        }
+    }
+    if (trainTrack.CollisionCheck())
+    {
+        return 0;
+    }
 
     Console.CursorVisible = false;
-
-    ScreenBuffer.Initialize();
+    Initialize();
+    Offset = 5;
     while (rounds < limit)
     {
-        Thread.Sleep(100);
+        Thread.Sleep(20);
+        DrawText($"Round: {rounds}, Limit: {limit}", 0, 0);
         trainTrack.ClearTrack();
         foreach (var train in trainTrack.TrainsOnTrack)
         {
+            if (train.WaitTimer != 0)
+            {
+                train.WaitTimer--;
+                foreach (int position in train.Positions)
+                {
+                    trainTrack.Track[position].Occupy(train.Piece);
+                }
+                continue;
+            }
             train.Move();
+            if (trainTrack.Track[train.Positions[0]].Piece == 'S' && !train.IsExpress)
+            {
+                train.WaitTimer = train.Positions.Count - 1;
+            }
             foreach (int position in train.Positions)
             {
-                trainTrack.Track[position].Occupy(train._piece);
+                trainTrack.Track[position].Occupy(train.Piece);
             }
         }
         trainTrack.Draw();
-        ScreenBuffer.DrawScreen();
+        DrawScreen();
         rounds++;
+        if (trainTrack.CollisionCheck())
+        {
+            break;
+        }
     }
-    return 0;
+    return rounds > limit ? -1 : rounds;
 }
 static Dictionary<int, TrainTrackPiece> MapTrack(string track)
 {
@@ -249,175 +279,6 @@ static Dictionary<int, TrainTrackPiece> MapTrack(string track)
 }
 
 TrainCrash(track, "xX", 188, "Dd", 113, 2000);
-TrainCrash(track2, "Aaaa", 147, "Bbbbbbbbbbb", 288, 1000);
+TrainCrash(track2, "Aaaa", 147, "Xxxxxxxxxxxxxx", 288, 1000);
 
-[Flags]
-public enum Direction
-{
-    None = 0,
-    Up = 1,
-    Down = 1 << 1,
-    Left = 1 << 2,
-    Right = 1 << 3,
-}
-public enum TrainDirection
-{
-    Clockwise,
-    CounterClockwise
-}
-public static class Extension
-{
-    public static int IndexOf<TSource>(this IEnumerable<TSource> source, Predicate<TSource> predicate)
-    {
-        int i = 0;
-        foreach (TSource item in source)
-        {
-            if (predicate(item))
-            {
-                return i;
-            }
-            i++;
-        }
-        return -1;
-    }
-}
-
-public class TrainTrack
-{
-    public Dictionary<int, TrainTrackPiece> Track { get; init; }
-    public Train[] TrainsOnTrack { get; init; }
-    public void Draw()
-    {
-        foreach (var KVpair in Track)
-        {
-            KVpair.Value.Draw();
-        }
-    }
-    public void ClearTrack()
-    {
-        foreach (var KVpair in Track)
-        {
-            KVpair.Value.UnOccupy();
-        }
-    }
-    public TrainTrack(Dictionary<int, TrainTrackPiece> track, Train trainA, Train trainB)
-    {
-        Track = track;
-        TrainsOnTrack = new Train[] {trainA, trainB};
-    }
-}
-public class TrainTrackPiece
-{
-    public TrainTrackPiece(int y, int x, char piece)
-    {
-        X = x;
-        Y = y;
-        _originalPiece = piece;
-    }
-    private readonly char _originalPiece;
-    private char _piece;
-    public int TrackPosition { get; set; }
-    public int Y { get; set; }
-    public int X { get; set; }
-    public bool HasTrainCarriage { get; set; } = false;
-    public char Piece { get => HasTrainCarriage ? _piece : _originalPiece; private set => _piece = value; }
-    public void Occupy(char carriage)
-    {
-        HasTrainCarriage = true;
-        Piece = carriage;
-    }
-    public void UnOccupy() => HasTrainCarriage = false;
-    public void Draw()
-    {
-        ScreenBuffer.Draw(Piece, Y, X);
-    }
-    public override int GetHashCode()
-    {
-        return base.GetHashCode();
-    }
-    public static bool operator == (TrainTrackPiece left, TrainTrackPiece right)
-    {
-        return left.Equals(right);
-    }
-    public static bool operator != (TrainTrackPiece left, TrainTrackPiece right)
-    {
-        return left.Equals(right);
-    }
-    public override bool Equals(object? obj)
-    {
-        if (obj is TrainTrackPiece compareTo)
-        {
-            return compareTo.X == this.X && compareTo.Y == this.Y;
-        }
-        return false;
-    }
-}
-
-public class Train
-{
-    readonly int _trackMaxPosition;
-    public char _piece;
-    int _position;
-    readonly TrainDirection _direction;
-    public List<int> Positions { get
-        {
-            var result = new List<int>() { _position};
-            foreach(var carriage in Carriage)
-            {
-                result.Add(carriage.Position(_position));
-            }
-            return result;
-        } }
-    public Carriage[] Carriage { get; set; }
-    public void Move() 
-    {
-        _position = _direction == TrainDirection.CounterClockwise 
-            ? _position - 1 < 0 
-                ? _trackMaxPosition : _position - 1 
-            : _position + 1 > _trackMaxPosition 
-                ? 0 : _position + 1;
-    }
-    public Train(string train, int position, int trackMaxPosition)
-    {
-        _direction = char.IsUpper(train[0]) ? TrainDirection.CounterClockwise : TrainDirection.Clockwise; 
-        _position = position;
-        Carriage = new Carriage[train.Length - 1];
-        _trackMaxPosition = trackMaxPosition;
-        _piece = char.ToUpper(train[0]);
-        for (int i = 0; i < train.Length - 1; i++)
-        {
-            Carriage[i] = new Carriage(trackMaxPosition, _direction == TrainDirection.CounterClockwise ? i + 1 : 0 - (i + 1)); 
-        }
-    }
-
-
-}
-public class Carriage
-{
-    readonly int _trackMaxPosition;
-    readonly int _nthCarriage;
-    public int Position(int enginePosition)
-    {
-        if (enginePosition + _nthCarriage < 0)
-        {
-            return _trackMaxPosition - (Math.Abs(enginePosition + _nthCarriage) - 1);
-        } else if (enginePosition + _nthCarriage - _trackMaxPosition == 1)
-        {
-            return 0;
-        } else if (enginePosition + _nthCarriage >_trackMaxPosition)
-        {
-            return (enginePosition + _nthCarriage) % _trackMaxPosition - 1; 
-        } else
-        {
-            return enginePosition + _nthCarriage;
-        }
-    }
-    public Carriage(int trackMaxPosition, int nthCarriage)
-    {
-        _trackMaxPosition = trackMaxPosition;
-        _nthCarriage = nthCarriage;
-
-    }
-
-}
 

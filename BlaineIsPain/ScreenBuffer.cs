@@ -8,8 +8,9 @@ namespace BlaineIsPain;
 
 static class ScreenBuffer
 {
-    static char[][] _screenArr = new char[Console.WindowHeight][];
+    static readonly char[][] _screenArr = new char[Console.WindowHeight][];
     static readonly char _whitespace = ' ';
+    public static int Offset { get; set; }
 
     public static void Initialize()
     {
@@ -22,10 +23,18 @@ static class ScreenBuffer
             }
         }
     }
-    public static void Draw(char ch, int y, int x) => _screenArr[y][x] = ch;
+    public static void Draw(char ch, int y, int x) => _screenArr[y + Offset][x + Offset] = ch;
+    public static void DrawText(string text, int y, int x)
+    {
+        for (int i = 0; i < text.Length; i++)
+        {
+            _screenArr[y][x + i] = text[i];
+        }
+    }
     public static void DrawScreen()
     {
         Console.SetCursorPosition(0, 0);
+        Console.CursorVisible = false;
         for (int y = 0; y < _screenArr.Length; y++)
         {
             Console.WriteLine(string.Join("",_screenArr[y]));
@@ -41,5 +50,6 @@ static class ScreenBuffer
                 _screenArr[y][x] = _whitespace;
             }
         }
+        Console.SetCursorPosition(0, 0);
     }
 }
