@@ -19,6 +19,13 @@ public class TrainTrack
     }
     public bool CollisionCheck()
     {
+        foreach (var train in TrainsOnTrack)
+        {
+            if (train.Positions.Select(pos => Track[pos]).GroupBy(coordinates => new { coordinates.X, coordinates.Y }).Count() < train.Positions.Count)
+            {
+                return true;
+            }
+        }
         return TrainsOnTrack[0].Positions.Any(aPos => TrainsOnTrack[1].Positions.Any(bPos => Track[aPos] == Track[bPos]));
     }
     public TrainTrack(Dictionary<int, TrainTrackPiece> track, Train trainA, Train trainB)

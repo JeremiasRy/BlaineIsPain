@@ -15,6 +15,7 @@ public class TrainTrackPiece
     public int X { get; set; }
     public bool HasTrainCarriage { get; set; } = false;
     public char Piece { get => HasTrainCarriage ? _piece : _originalPiece; private set => _piece = value; }
+    public char GetOriginalPiece() => _originalPiece;
     public void Occupy(char carriage)
     {
         HasTrainCarriage = true;
