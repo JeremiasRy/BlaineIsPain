@@ -41,7 +41,7 @@ static int TrainCrash(string track, string aTrain, int aTrainPos, string bTrain,
     Offset = 5;
     while (rounds < limit)
     {
-        Thread.Sleep(200);
+        Thread.Sleep(60);
         DrawText($"Round: {rounds}, Limit: {limit}", 0, 0);
         trainTrack.ClearTrack();
         foreach (var train in trainTrack.TrainsOnTrack)
@@ -326,7 +326,11 @@ static Dictionary<int, TrainTrackPiece> MapTrack(string track)
     }
     return result;
 }
+TrainCrash(track5, "ooO", 2, "Uuu", 10, 100);
+TrainCrash(track4, "Aaa", 6, "Bbb", 1, 100);
+TrainCrash(track3, "Aa", 12, "bB", 16, 100);
 TrainCrash(track, "xX", 188, "Dd", 113, 2000);
-TrainCrash(track2, "Aaaa", 147, "Xxxxxxxxxxxxxx", 288, 1000);
+TrainCrash(track2, "Aaaa", 147, "Bbbbbbbbbbbbbb", 288, 1000);
+
 
 
